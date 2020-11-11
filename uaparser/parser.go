@@ -227,13 +227,32 @@ func NewFromBytes(data []byte) (*Parser, error) {
 
 func (parser *Parser) Parse(line string) *Client {
 	cli := new(Client)
-	cli.UserAgent = parser.ParseUserAgent(line)
-	cli.Os = parser.ParseOs(line)
-	cli.Device = parser.ParseDevice(line)
+	var wg sync.WaitGroup
+	if EUserAgentLookUpMode&parser.Mode == EUserAgentLookUpMode {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			cli.UserAgent = parser.ParseUserAgent(line)
+		}()
+	}
+	if EOsLookUpMode&parser.Mode == EOsLookUpMode {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			cli.Os = parser.ParseOs(line)
+		}()
+	}
+	if EDeviceLookUpMode&parser.Mode == EDeviceLookUpMode {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			cli.Device = parser.ParseDevice(line)
+		}()
+	}
+	wg.Wait()
 	if parser.UseSort == true {
 		checkAndSort(parser)
 	}
-
 	return cli
 }
 
